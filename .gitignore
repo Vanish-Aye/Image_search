@@ -1,0 +1,11 @@
+node_modules/
+.turbo/
+.vscode/
+app/main/out/*
+dist/
+model/
+.cache/
+out/*
+*.log*
+clip_cn_vit-h-14.pt
+imgDB.db

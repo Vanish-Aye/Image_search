@@ -1,0 +1,62 @@
+@use 'sass:map'; // ✅ 导入 map 模块
+
+@font-face {
+  font-family: 'PixelFont';
+  src: url('../assets/fonts/ark-pixel-12px-monospaced-zh_cn.ttf.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+// 1. 定义共享变量（两个主题共用的值）
+$shared-values: (
+  border-radius: 8px,
+  spacing-base: 16px,
+  // 其他共用样式...
+);
+
+// 2. 定义主题特有变量
+$theme-specific: (
+  light: (
+    tit-btn-hover: rgb(199, 199, 199),
+
+  ),
+  dark: (
+    tit-btn-hover: rgb(60,60,60),
+
+  )
+);
+
+// 3. 合并共享变量和主题变量
+@function build-theme($specific-map) {
+  @return map.merge($shared-values, $specific-map);
+}
+
+$themes: (
+  light: build-theme(map.get($theme-specific, light)),
+  dark: build-theme(map.get($theme-specific, dark))
+);
+
+:root {
+  // 默认主题（light）的变量
+  @each $key, $value in map.get($themes, light) {
+    --#{$key}: #{$value};
+    color: black;
+    text-shadow: none;
+  }
+
+  // 暗黑主题覆盖
+  &[data-theme="night"] {
+    @each $key, $value in map.get($themes, dark) {
+      --#{$key}: #{$value};
+      // color: white;
+      // text-shadow: 
+      //   0 0 5px currentColor,  /* 内层光晕（紫） */
+      //   0 0 15px currentColor, /* 中层光晕 */
+      //   0 0 20px currentColor; /* 外层光晕 */
+    };
+  }
+  // 共用样式
+  user-select: none;
+  font-family: "黑体";
+  font-size: 18px;
+}

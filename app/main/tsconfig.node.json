@@ -1,0 +1,22 @@
+{
+  "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
+  "include": [
+    "electron.vite.config.*",
+    "src/node/main/**/*",
+    "src/node/preload/**/*",
+    "src/node/global/*",
+    "src/node/private/**/*.ts",
+    "src/node/webpreload/index.d.ts"  ],
+  "compilerOptions": {
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "composite": true,
+
+    "types": ["electron-vite/node"],
+    "baseUrl": ".",
+    "paths": {
+      "@global/*": ["src/node/global/*"],
+      "@private/*": ["src/node/private/*"],
+    }
+  }
+}

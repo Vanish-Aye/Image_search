@@ -1,0 +1,7 @@
+onlyBuiltDependencies:
+  - onnxruntime-web
+  - better-sqlite3
+  - electron
+  - esbuild
+packages:
+  - "app/*"

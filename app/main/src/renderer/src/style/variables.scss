@@ -1,0 +1,65 @@
+// 引入主题变量
+@use './themes.scss' as *;
+
+// 全局样式（强制所有元素继承CSS变量）
+body {
+    height: 100vh;
+    width: 100vw;
+}
+  
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    font-weight: normal;
+}
+
+// 右键菜单样式
+.electron-custom-context-menu {
+  position: fixed;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+  max-width: 320px;
+  opacity: 0;
+  z-index: 1;
+  transform: scale(0.95);
+  transform-origin: top left;
+  transition: opacity 0.1s ease, transform 0.1s ease;
+  pointer-events: auto;
+}
+
+.electron-custom-context-menu.menu-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 防止菜单内容被选中 */
+.electron-custom-context-menu * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 菜单项样式 */
+.electron-custom-context-menu .menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333;
+  transition: background-color 0.15s ease;
+}
+
+.electron-custom-context-menu .menu-item:hover {
+  background-color: #f0f0f0;
+}
+
+.electron-custom-context-menu .menu-item:active {
+  background-color: #e0e0e0;
+}
+
+.electron-custom-context-menu .menu-divider {
+  height: 1px;
+  background-color: #eee;
+  margin: 4px 0;
+}
