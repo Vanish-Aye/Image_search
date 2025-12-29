@@ -66,7 +66,21 @@ const Send_IpcChannels_Map = {
     },
     response: {} as {
       eventName: 'text-search'
-      msg: DefaultRet<string[]> | DefaultRet<null>
+      msg: DefaultRet<string[]>
+    }
+  },
+  'remove-from-db': {
+    request: [] as unknown as {
+      path: string
+      processChannel: string
+    },
+    toInfer: [] as unknown as {
+      path: string
+      eventName: 'remove-from-db'
+    },
+    response: {} as {
+      eventName: 'remove-from-db'
+      msg: DefaultRet<boolean>
     }
   }
 } as const
@@ -93,20 +107,26 @@ export type Child_IpcChannels = {
     response: (typeof Child_IpcChannels_Map)[K]['response']
   }
 }
-// ----------------------------定义receive通道映射对象
+// ----------------------------定义单向通道映射对象
 
-const Receive_IpcChannels_Map = {
+const OneWay_IpcChannels_Map = {
   'new-img-added': {
     response: [] as unknown as {
-      eventName: 'text-search'
-      msg: DefaultRet<string[]>
+      eventName: 'new-img-added'
+      msg: DefaultRet<string>
+    }
+  },
+  'new-img-removed': {
+    response: [] as unknown as {
+      eventName: 'new-img-removed'
+      msg: DefaultRet<string>
     }
   }
 } as const
 
-export type Receive_IpcChannels = {
-  [K in keyof typeof Receive_IpcChannels_Map]: {
-    response: (typeof Receive_IpcChannels_Map)[K]['response']
+export type OneWay_IpcChannels = {
+  [K in keyof typeof OneWay_IpcChannels_Map]: {
+    response: (typeof OneWay_IpcChannels_Map)[K]['response']
   }
 }
 
@@ -114,12 +134,12 @@ export type Receive_IpcChannels = {
 export type AllInvokeChannels = keyof typeof Invoke_IpcChannels_Map
 export type AllSendChannels = keyof typeof Send_IpcChannels_Map
 export type AllChildChannels = keyof typeof Child_IpcChannels_Map
-export type AllReceiveChannels = keyof typeof Receive_IpcChannels_Map
+export type AllOneWayChannels = keyof typeof OneWay_IpcChannels_Map
 
 export const ALL_INVOKE_CHANNELS = Object.keys(Invoke_IpcChannels_Map) as AllInvokeChannels[]
 export const ALL_SEND_CHANNELS = Object.keys(Send_IpcChannels_Map) as AllSendChannels[]
 export const ALL_CHILD_CHANNELS = Object.keys(Child_IpcChannels_Map) as AllChildChannels[]
-export const ALL_RECEIVE_CHANNELS = Object.keys(Receive_IpcChannels_Map) as AllReceiveChannels[]
+export const ALL_ONEWAY_CHANNELS = Object.keys(OneWay_IpcChannels_Map) as AllOneWayChannels[]
 /**
  * 频道汇总
  */

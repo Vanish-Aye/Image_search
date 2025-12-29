@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ElectronAPI } from '@electron-toolkit/preload'
-import { Invoke_IpcChannels, Send_IpcChannels, Receive_IpcChannels } from '../global/channeldef'
+import { Invoke_IpcChannels, Send_IpcChannels, OneWay_IpcChannels } from '../global/channeldef'
 
 declare global {
   interface Window {
@@ -40,12 +40,12 @@ declare global {
        * @param channel 监听频道
        * @param listener 回调函数
        */
-      on_receive: <T extends keyof Receive_IpcChannels>(
+      on_receive: <T extends keyof OneWay_IpcChannels>(
         channel: T,
         once: boolean,
         listener: (
           event: Electron.IpcRendererEvent,
-          args: Receive_IpcChannels[T]['response']
+          args: OneWay_IpcChannels[T]['response']
         ) => void
       ) => void
 

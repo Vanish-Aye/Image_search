@@ -5,7 +5,7 @@ import {
   validChannels,
   Invoke_IpcChannels,
   Send_IpcChannels,
-  Receive_IpcChannels
+  OneWay_IpcChannels
 } from '@global/channeldef.js'
 
 // Custom APIs for renderer
@@ -38,17 +38,17 @@ const api = {
       ipcRenderer.on(channel, listener)
     }
   },
-  on_receive: <T extends keyof Receive_IpcChannels>(
+  on_receive: <T extends keyof OneWay_IpcChannels>(
     channel: T,
     once: boolean,
-    listener: (event: Electron.IpcRendererEvent, args: Receive_IpcChannels[T]['response']) => void
+    listener: (event: Electron.IpcRendererEvent, args: OneWay_IpcChannels[T]['response']) => void
   ) => {
     if (once) {
-      console.log(`开始监听（单次）： ${channel}`)
-      ipcRenderer.once(channel, listener)
+      console.log(`开始监听（单次）： ${String(channel)}`)
+      ipcRenderer.once(String(channel), listener)
     } else {
-      console.log(`开始监听： ${channel}`)
-      ipcRenderer.on(channel, listener)
+      console.log(`开始监听： ${String(channel)}`)
+      ipcRenderer.on(String(channel), listener)
     }
   },
   removeListener: (

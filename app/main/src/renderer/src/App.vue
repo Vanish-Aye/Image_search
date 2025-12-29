@@ -1,11 +1,12 @@
 <script setup lang="ts">
 // import Versions from './components/Versions.vue'
-import { onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import generalBtn from './components/generalBtn.vue'
 import imageMg from './components/imageMg.vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { CustomRCMenu } from './services/rightclick'
 const mylist = ref<string[]>()
+// watch( () => mylist.value, () => { mylist.value =  } )
 const isReady = ref<boolean>(false)
 
 onMounted(() => {
@@ -22,12 +23,39 @@ onMounted(() => {
     }
   })
 
-  window.api.on_receive('new-img-added', false, (event, args) => {
-    if (args.eventName == 'text-search' && args.msg.state == 'success') {
-      mylist.value?.push(...args.msg.content)
+  window.api.on_receive('new-img-added', false, async (event, args) => {
+    if (args.msg.state == 'success') {
+      console.log(mylist.value)
+      mylist.value?.push(args.msg.content)
+      // 2. 等待DOM更新
+      await nextTick()
+
+      // 3. 重新启用组件
+      isReady.value = false
+      await nextTick() // 确保组件已卸载
+      isReady.value = true
+    }
+  })
+
+  window.api.on_receive('new-img-removed', false, async (event, args) => {
+    if (args.eventName == 'new-img-removed' && args.msg.state == 'success') {
+      for (let i = mylist.value!.length - 1; i >= 0; i--) {
+        if (mylist.value![i] === args.msg.content) {
+          mylist.value!.splice(i, 1)
+        }
+      }
+
+      // 2. 等待DOM更新
+      await nextTick()
+
+      // 3. 重新启用组件
+      isReady.value = false
+      await nextTick() // 确保组件已卸载
+      isReady.value = true
     }
   })
 })
+
 const getImgUrl = (rawPath: string) => {
   // 1. 将Windows反斜杠路径转换为URL可接受的正斜杠
   const pathWithSlash = rawPath.replace(/\\/g, '/')
@@ -35,7 +63,7 @@ const getImgUrl = (rawPath: string) => {
   // 3. 拼接自定义协议
   return `img://${encodedPath}`
 }
-const handleRightClick = (event: MouseEvent) => {
+const handleRightClick = (event: MouseEvent, path: string) => {
   event.preventDefault() // 阻止默认右键菜单
   // console.log('右键坐标:', event.clientX, event.clientY);
   // 自定义逻辑（例如显示自定义菜单）
@@ -53,7 +81,10 @@ const handleRightClick = (event: MouseEvent) => {
       [
         '仅从数据库移出',
         () => {
-          console.log('null sel')
+          window.api.send('remove-from-db', {
+            path: path,
+            processChannel: 'rep-remove-from-db'
+          })
         }
       ],
       [
@@ -103,7 +134,7 @@ const handleRightClick = (event: MouseEvent) => {
           <img
             :src="getImgUrl(item)"
             class="imgInList"
-            @contextmenu.prevent="handleRightClick($event)"
+            @contextmenu.prevent="handleRightClick($event, item)"
           />
         </div>
       </RecycleScroller>

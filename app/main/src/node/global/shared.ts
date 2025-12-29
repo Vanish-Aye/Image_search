@@ -32,8 +32,8 @@ declare global {
     ports?: Electron.MessagePortMain[] // 保留原有属性
   }
   type SUCCESS_RET<T> = {
-    isFinal?: boolean
     state: 'success'
+    isFinal?: boolean
     content: T
   }
 

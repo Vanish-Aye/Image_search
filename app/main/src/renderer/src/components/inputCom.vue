@@ -5,7 +5,7 @@
       v-model="inputValue"
       :class="{ 'has-content': inputValue }"
       @input="checkContent"
-      @keydown.enter="props.handleEnter"
+      @keydown.enter="handleEnterWithValue"
     />
     <span class="highlight" />
     <span class="bar" />
@@ -43,13 +43,18 @@ const props = defineProps({
     default: 'rgb(255, 255, 255)'
   },
   handleEnter: {
-    type: Function as PropType<(event: KeyboardEvent) => void>,
+    type: Function as PropType<(value: string, event: KeyboardEvent) => void>,
     required: false,
     default: () => {
       console.log('Input Enter Function.')
     }
   }
 })
+
+const handleEnterWithValue = (event: KeyboardEvent) => {
+  // 将 inputValue 作为参数传递给父组件的方法
+  props.handleEnter(inputValue.value, event)
+}
 
 const checkContent = () => {
   hasContent.value = inputValue.value.trim() !== ''

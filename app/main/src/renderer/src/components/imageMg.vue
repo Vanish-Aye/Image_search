@@ -2,7 +2,7 @@
   <div class="img_manager">
     <general-btn :clicked="opfs">添加图片至数据库</general-btn>
     <input-com width="100px" :handle-enter="text_search">搜索图片</input-com>
-    <p>{{ taskState }}</p>
+    <p class="state">{{ taskState }}</p>
   </div>
 </template>
 
@@ -28,13 +28,27 @@ const opfs = async () => {
   window.api.on('add-img-to-db', 'test-addimg', false, processFunc)
 }
 
-const text_search = (event: KeyboardEvent) => {
-  return 
+const text_search = (value: string) => {
+  console.log(value)
+  window.api.send('text-search', {
+    text: value,
+    processChannel: 'rep-text-search'
+  })
+  window.api.on('text-search', 'rep-text-search', true, (event, args) => {
+    if (args.state == 'success') {
+      console.log(args.content)
+    }
+  })
 }
 </script>
 
 <style lang="scss" scoped>
 .img_manager {
   display: flex;
+}
+
+.state {
+  position: absolute;
+  bottom: 0;
 }
 </style>

@@ -65,12 +65,17 @@ app.whenReady().then(() => {
 
   // 创建推理子程序
   const inferer_mgr = new Inference_Manger()
-  inferer_mgr.startPluginUtilityProcess()
+  const port2 = inferer_mgr.startPluginUtilityProcess() as Electron.MessagePortMain
+  port2.on('message', (event) => {
+    if (event.data.eventName == 'new-img-added') {
+      mainWindow.webContents.send('new-img-added', event.data)
+    }
+  })
 
   // 创建自定义ipcMain控制对象
   const cipcMain = new ipcMainOperater(ipcMain)
 
-  // 添加图像及其特征
+  // 1.添加图像及其特征
   cipcMain.on('add-img-to-db', async (event, args) => {
     const options: Electron.OpenDialogOptions = {
       properties: ['multiSelections'], // 选择多个文件
@@ -84,9 +89,19 @@ app.whenReady().then(() => {
     inferer_mgr.startImgFeaExtract(out.filePaths, event, args.processChannel)
   })
 
-  // 请求图片路径
+  // 2.请求图片路径
   cipcMain.on('request-imgs-from-db', (event, args) => {
     inferer_mgr.getImgsForList(args.range, event, args.processChannel)
+  })
+
+  // 3.文本搜图
+  cipcMain.on('text-search', (event, args) => {
+    inferer_mgr.startTextSearch(args.text, event, args.processChannel)
+  })
+
+  // 4.从数据库删除
+  cipcMain.on('remove-from-db', (event, args) => {
+    inferer_mgr.startRemovefdb(args.path, event, args.processChannel)
   })
 
   app.on('activate', function () {
