@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // import Versions from './components/Versions.vue'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
 import generalBtn from './components/generalBtn.vue'
 import imageMg from './components/imageMg.vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
@@ -120,14 +120,15 @@ const handleRightClick = (event: MouseEvent, path: string) => {
   <div id="all_background">
     <div class="left_field">
       <generalBtn class="left_f_title"> title</generalBtn>
-      <imageMg></imageMg>
 
       <RecycleScroller
         v-if="isReady"
         v-slot="{ item }"
         class="scroller"
+        grid-items="2"
         :items="mylist"
-        :item-size="80"
+        :item-size="200"
+        :buffer="500"
         key-field="id"
       >
         <div class="user">
@@ -138,18 +139,36 @@ const handleRightClick = (event: MouseEvent, path: string) => {
           />
         </div>
       </RecycleScroller>
+      <imageMg></imageMg>
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
+.scroller :deep(.vue-recycle-scroller__item-wrapper) {
+  display: flex;
+  justify-content: space-evenly;
+  padding: 8px;
+}
+
 .scroller {
-  height: 40%;
+  height: 70%;
   width: 100%;
 
-  .imgInList {
-    height: 80px;
-    aspect-ratio: 1;
+  .user {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    width: 200px;
+    margin: 5px;
+    background-color: rgb(100, 100, 100);
+    border-radius: 10px;
+
+    .imgInList {
+      width: 80%;
+      aspect-ratio: 1;
+    }
   }
 }
 
@@ -164,7 +183,7 @@ const handleRightClick = (event: MouseEvent, path: string) => {
   display: flex;
   position: relative;
   height: 100%;
-  width: 250px;
+  width: 420px;
   background-color: rgb(59, 53, 65);
   flex-direction: column;
   align-items: center;

@@ -180,7 +180,6 @@ export class Inference_Manger {
     }) => {
       // 判定事件类型
       if (this._inferEventOk('add-img-to-db', messageEvent.data)) {
-        console.log('get sucess')
         this.taskinfo.finished += 1
         this.ReplyRevent(Revent, processChannel, {
           isFinal: false,
