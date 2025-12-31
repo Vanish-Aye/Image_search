@@ -1,5 +1,5 @@
 import { Child_IpcChannels, OneWay_IpcChannels, Send_IpcChannels } from '@global/channeldef'
-import { ipcMain, ipcRenderer, MessageChannelMain, MessagePortMain, utilityProcess, webContents } from 'electron'
+import { MessageChannelMain, MessagePortMain, utilityProcess } from 'electron'
 import path from 'path'
 
 type ExtractSuccessType<T> = T extends { msg: infer M }
@@ -130,7 +130,6 @@ export class Inference_Manger {
           console.log(`model inference process is started!`)
 
           this.postMessageToChild(child, 'child-port-give', [port1])
-
         }
       })
 
@@ -158,55 +157,65 @@ export class Inference_Manger {
 
   // 1.对图像提取特征
   startImgFeaExtract(imgPaths: string[], Revent: Electron.IpcMainEvent, processChannel: string) {
-    if (this.taskinfo.inWorking == true) {
+    if (this.taskinfo.inWorking) {
       console.log('模型正在工作中...')
+      return
     }
+
     this.taskinfo.inWorking = true
     this.taskinfo.numOfworks = imgPaths.length
+    this.taskinfo.finished = 0
 
     this.postMessageToInferer(this.mainProcess, {
-      imgPaths: imgPaths,
+      imgPaths,
       eventName: 'add-img-to-db'
     })
+
     this.ReplyRevent(Revent, processChannel, {
       isFinal: false,
       state: 'success',
-      content: [0, 0]
+      content: [0, this.taskinfo.numOfworks]
     })
 
-    const Progress_tracking = (messageEvent: {
+    const handleProgress = (messageEvent: {
       data: Send_IpcChannels['add-img-to-db']['response']
       ports: MessagePortMain[]
     }) => {
-      // 判定事件类型
-      if (this._inferEventOk('add-img-to-db', messageEvent.data)) {
+      const { data } = messageEvent
+
+      if (data.msg.state === 'error') {
+        console.error(data.msg.message)
         this.taskinfo.finished += 1
+        return
+      }
+
+      if (!this._inferEventOk('add-img-to-db', data)) return
+
+      this.taskinfo.finished += 1
+      this.ReplyRevent(Revent, processChannel, {
+        isFinal: false,
+        state: 'success',
+        content: [this.taskinfo.finished, this.taskinfo.numOfworks]
+      })
+
+      if (this.taskinfo.finished === this.taskinfo.numOfworks) {
         this.ReplyRevent(Revent, processChannel, {
-          isFinal: false,
+          isFinal: true,
           state: 'success',
-          content: [this.taskinfo.finished, this.taskinfo.numOfworks]
+          content: [0, 0]
         })
-        // 已完成
-        if (this.taskinfo.finished == this.taskinfo.numOfworks) {
-          // 数据重置
-          this.taskinfo.inWorking = false
-          this.taskinfo.finished = 0
-          this.taskinfo.numOfworks = 0
-          // 消息发送
-          this.ReplyRevent(Revent, processChannel, {
-            isFinal: true,
-            state: 'success',
-            content: [0, 0]
-          })
-          this.mainProcess.removeListener('message', Progress_tracking)
-        }
-      } else if (messageEvent.data.msg.state == 'error') {
-        this.taskinfo.finished += 1
-        console.error(messageEvent.data.msg.message)
+        this.resetTaskInfo()
+        this.mainProcess.removeListener('message', handleProgress)
       }
     }
 
-    this.mainProcess.on('message', Progress_tracking)
+    this.mainProcess.on('message', handleProgress)
+  }
+
+  private resetTaskInfo() {
+    this.taskinfo.inWorking = false
+    this.taskinfo.finished = 0
+    this.taskinfo.numOfworks = 0
   }
 
   // 2.获取数据库内图片列表
@@ -233,29 +242,31 @@ export class Inference_Manger {
 
     this.mainProcess.on('message', Progress_tracking)
   }
-
-  startTextSearch(text: string, Revent: Electron.IpcMainEvent, processChannel: string) {
+  // 3.文本搜图
+  startTextSearch(args: Send_IpcChannels['text-search']['request'], Revent: Electron.IpcMainEvent) {
+    // 发送消息到推理进程
     this.postMessageToInferer(this.mainProcess, {
       eventName: 'text-search',
-      text: text
+      text: args.text,
+      numberOfResults: args.numberOfResults
     })
-
-    this.mainProcess.once(
-      'message',
-      (messageEvent: {
-        data: Send_IpcChannels['text-search']['response']
-        ports: MessagePortMain[]
-      }) => {
-        if (this._inferEventOk('text-search', messageEvent.data)) {
-          this.ReplyRevent(Revent, processChannel, {
-            state: 'success',
-            content: messageEvent.data.msg.content
-          })
-        }
+    // 监听回复的处理函数
+    const Progress_tracking = (messageEvent: {
+      data: Send_IpcChannels['text-search']['response']
+      ports: MessagePortMain[]
+    }) => {
+      if (this._inferEventOk('text-search', messageEvent.data)) {
+        this.ReplyRevent(Revent, args.processChannel, {
+          state: 'success',
+          content: messageEvent.data.msg.content
+        })
+        this.mainProcess.removeListener('message', Progress_tracking)
       }
-    )
+    }
+    // 监听推理进程的回复
+    this.mainProcess.on('message', Progress_tracking)
   }
-
+  // 4.从数据库删除图片
   startRemovefdb(path: string, Revent: Electron.IpcMainEvent, processChannel: string) {
     this.postMessageToInferer(this.mainProcess, {
       path: path,

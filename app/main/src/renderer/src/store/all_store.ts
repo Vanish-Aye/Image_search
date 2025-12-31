@@ -40,4 +40,14 @@ const Window_Store = defineStore(
   }
 )
 
-export { Window_Store }
+const Render_Ref_Store = defineStore('renderref', () => {
+  const resultImgs = ref<string[]>([])
+  const currentImgSrc = ref<string>('')
+
+  return {
+    resultImgs,
+    currentImgSrc
+  }
+})
+
+export { Window_Store, Render_Ref_Store }

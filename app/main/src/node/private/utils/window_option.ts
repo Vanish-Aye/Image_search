@@ -4,8 +4,8 @@ import { join } from 'path'
 import icon from '../../../../resources/icon.png?asset'
 
 export const WinOption: BrowserWindowConstructorOptions = {
-  width: 900,
-  height: 670,
+  width: 1400,
+  height: 850,
   show: false,
   autoHideMenuBar: true,
   title: '图像查找',

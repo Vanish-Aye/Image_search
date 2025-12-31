@@ -17,7 +17,7 @@ declare global {
       ) => void
 
       /**
-       * 监听Node端Send的回复事件
+       * 监听Node端事件（无send过程）
        * @param srcChannel 源频道（若无则是仅监听模式）
        * @param once 是否仅监听一次
        * @param channel 监听频道
@@ -29,17 +29,12 @@ declare global {
         once: boolean,
         listener: (
           event: Electron.IpcRendererEvent,
-          args: Send_IpcChannels[T]['response']['msg']
+          args: Send_IpcChannels[T] extends { response: { msg: infer M } }
+            ? Exclude<M, ERROR_RET>
+            : never
         ) => void
       ) => void
 
-      /**
-       * 监听Node端事件（无send过程）
-       * @param srcChannel 源频道（若无则是仅监听模式）
-       * @param once 是否仅监听一次
-       * @param channel 监听频道
-       * @param listener 回调函数
-       */
       on_receive: <T extends keyof OneWay_IpcChannels>(
         channel: T,
         once: boolean,

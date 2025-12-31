@@ -96,7 +96,7 @@ app.whenReady().then(() => {
 
   // 3.文本搜图
   cipcMain.on('text-search', (event, args) => {
-    inferer_mgr.startTextSearch(args.text, event, args.processChannel)
+    inferer_mgr.startTextSearch(args, event)
   })
 
   // 4.从数据库删除

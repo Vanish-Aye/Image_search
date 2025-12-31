@@ -58,10 +58,12 @@ const Send_IpcChannels_Map = {
   'text-search': {
     request: [] as unknown as {
       text: string
+      numberOfResults: number
       processChannel: string
     },
     toInfer: [] as unknown as {
       text: string
+      numberOfResults: number
       eventName: 'text-search'
     },
     response: {} as {
