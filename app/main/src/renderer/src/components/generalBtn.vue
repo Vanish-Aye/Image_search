@@ -2,6 +2,7 @@
   <label
     :style="cssVars"
     class="genbtn"
+    style="height: auto; padding: 2px"
     :class="{ 'real-active': isActive }"
     @click="handleClick"
     @mousedown="handleMouseDown"
@@ -53,13 +54,12 @@ const cssVars = computed(() => ({
 
 <style lang="scss" scoped>
 .genbtn {
-  display: inline-block;
+  display: flex;
   height: 100%;
   width: var(--width);
-  margin-left: 5px;
-  margin-right: 5px;
-  text-align: center;
   align-content: center;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .genbtn:hover {

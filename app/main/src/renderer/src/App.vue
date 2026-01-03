@@ -1,18 +1,34 @@
 <script setup lang="ts">
 // import Versions from './components/Versions.vue'
-import { nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import generalBtn from './components/generalBtn.vue'
 import imageMg from './components/imageMg.vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import { CustomRCMenu } from './services/rightclick'
-import { Render_Ref_Store } from './store/all_store'
+import { Model_Settings_Store, Render_Ref_Store } from './store/all_store'
+import { storeToRefs } from 'pinia'
+const modelSettingsStore = Model_Settings_Store()
+const { imgModePath, txtModelPath } = storeToRefs(modelSettingsStore)
 const mylist = ref<string[]>()
 const isReady = ref<boolean>(false)
+import toast from './services/toast'
 
 const renderRefStore = Render_Ref_Store()
-
+const { resultImgs } = storeToRefs(renderRefStore)
 // 初始化并绑定事件
 onMounted(() => {
+  window.api.send('initialize-infer-process', {
+    processChannel: 'rep-initialize-infer-process',
+    settings: {
+      imgModelPath: imgModePath.value,
+      txtModelPath: txtModelPath.value
+    }
+  })
+  window.api.on_receive('error-channel', false, (event, args) => {
+    if (args.msg.state == 'error') {
+      toast.error(`错误通道收到错误消息:${args.msg.message}`, 5000)
+    }
+  })
   // 获取图片列表
   window.api.send('request-imgs-from-db', {
     range: [0, 49],
@@ -60,6 +76,9 @@ onMounted(() => {
 })
 
 const getImgUrl = (rawPath: string) => {
+  if (!rawPath) {
+    return ''
+  }
   // 1. 将Windows反斜杠路径转换为URL可接受的正斜杠
   const pathWithSlash = rawPath.replace(/\\/g, '/')
   const encodedPath = encodeURI(pathWithSlash)
@@ -117,12 +136,21 @@ const handleRightClick = (event: MouseEvent, path: string) => {
     ])
   )
 }
+
+const curImg = computed(() => {
+  const src = getImgUrl(renderRefStore.currentImgSrc)
+  if (src == '') {
+    return null
+  } else {
+    return src
+  }
+})
 </script>
 
 <template>
   <div id="all_background">
     <div class="left_field">
-      <generalBtn class="left_f_title"> title</generalBtn>
+      <generalBtn class="left_f_title">图片列表</generalBtn>
       <RecycleScroller
         v-if="isReady"
         v-slot="{ item }"
@@ -137,6 +165,12 @@ const handleRightClick = (event: MouseEvent, path: string) => {
           <img
             :src="getImgUrl(item)"
             class="imgInList"
+            @click="
+              () => {
+                renderRefStore.currentImgSrc = item
+                console.log(`当前图片路径:${renderRefStore.currentImgSrc}`)
+              }
+            "
             @contextmenu.prevent="handleRightClick($event, item)"
           />
         </div>
@@ -145,30 +179,27 @@ const handleRightClick = (event: MouseEvent, path: string) => {
     </div>
     <div class="main_field">
       <div class="select_field">
-        <RecycleScroller
-          v-slot="{ item }"
-          :items="renderRefStore.resultImgs"
-          :item-size="40"
-          :buffer="500"
-          style="width: 50px"
-          key-field="id"
+        <p>结果</p>
+        <generalBtn
+          v-for="item in resultImgs"
+          :key="item"
+          style="margin: 2px; width: 55px"
+          :clicked="
+            () => {
+              renderRefStore.currentImgSrc = item
+              console.log(`当前图片路径:${renderRefStore.currentImgSrc}`)
+            }
+          "
         >
-          <generalBtn class="button" width="40px">
-            <img
-              :src="getImgUrl(item)"
-              class="imgInList"
-              width="40px"
-              :click="
-                () => {
-                  renderRefStore.currentImgSrc = item
-                }
-              "
-            />
-          </generalBtn>
-        </RecycleScroller>
+          <img
+            :src="getImgUrl(item)"
+            class="imgInList"
+            style="max-width: 100%; max-height: 100%; padding: 2px"
+          />
+        </generalBtn>
       </div>
       <div class="display_field">
-        <img :src="getImgUrl(renderRefStore.currentImgSrc)" alt="当前图片" style="height: 100%" />
+        <img v-if="curImg" :src="curImg" alt="当前图片" />
       </div>
     </div>
   </div>
@@ -176,6 +207,7 @@ const handleRightClick = (event: MouseEvent, path: string) => {
 
 <style lang="scss" scoped>
 .scroller {
+  min-height: 70%;
   height: 70%;
   width: 100%;
 
@@ -196,11 +228,32 @@ const handleRightClick = (event: MouseEvent, path: string) => {
   }
 }
 
+.scroller::-webkit-scrollbar {
+  width: 7px;
+  height: 8px;
+}
+
+/* 滚动条轨道 */
+.scroller::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+/* 滚动条滑块 */
+.scroller::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.scroller::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
 #all_background {
   background-color: gray;
   display: flex;
   height: 100%;
-  width: 100%;
+  width: 100vw; /* 使用视口宽度，防止滚动条影响 */
 }
 
 .left_field {
@@ -208,14 +261,19 @@ const handleRightClick = (event: MouseEvent, path: string) => {
   position: relative;
   height: 100%;
   width: 420px;
-  background-color: rgb(59, 53, 65);
+  background-color: rgb(56, 53, 65);
   flex-direction: column;
   align-items: center;
+  flex-shrink: 0; /* 防止收缩 */
+  border-right: #000000 2px solid;
 }
 
 .left_f_title {
   position: relative;
   display: flex;
+  background-color: rgb(32, 28, 28);
+  color: #95acb3;
+  border-radius: 2px;
   height: 20px;
   width: 100%;
   justify-content: center;
@@ -227,25 +285,31 @@ const handleRightClick = (event: MouseEvent, path: string) => {
   position: relative;
   flex-grow: 1;
   height: 100%;
-  width: 100%;
   background-color: rgb(200, 200, 200);
   flex-direction: row;
 
   .select_field {
     display: flex;
     height: 100%;
-    width: 50px;
-    background-color: rgb(150, 150, 150);
+    width: 60px;
     flex-direction: column;
     align-items: center;
     padding-top: 10px;
+
+    .outscroller {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
   }
 
   .display_field {
     display: flex;
+    position: relative;
+    flex: 1;
     justify-content: center;
     align-items: center;
-    background-color: rgb(220, 220, 220);
+    background-color: rgb(24, 24, 24);
     padding: 10px;
 
     img {

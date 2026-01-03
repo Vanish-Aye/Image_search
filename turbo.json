@@ -6,6 +6,11 @@
         "outputs": [".next/**", "!.next/cache/**"],
         "cache": true
       },
+      "build:win": {
+        "dependsOn": ["build"],
+        "outputs": [".win/**"],
+        "cache": false
+      },
       "check-types": {
         "dependsOn": ["^check-types"]
       },

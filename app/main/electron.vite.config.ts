@@ -59,20 +59,11 @@ export default defineConfig({
     },
     plugins: [vue()],
     server: {
-      host: 'localhost',
+      host: '127.0.0.1',
       port: 5173,
       strictPort: true,
       hmr: {
         overlay: true
-      },
-      proxy: {
-        // 将以 img:// 开头的请求代理到一个不存在的地址，
-        // 目的是让 Vite 放弃处理它，而不是返回错误或占位符。
-        '^/img:': {
-          target: 'http://localhost:9999', // 一个不存在的服务地址
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/img:/, '') // 可选，重写路径
-        }
       }
     }
   }

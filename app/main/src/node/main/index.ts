@@ -1,9 +1,13 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, net } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, protocol, net, globalShortcut } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { createWindow } from '../private/utils/window_option'
 import { Inference_Manger } from './inference_mgr'
 import { Send_IpcChannels } from '@global/channeldef'
 import path from 'path'
+
+export const srcPath = app.isPackaged
+  ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources')
+  : path.join(__dirname, '../../../resources')
 
 class ipcMainOperater {
   private ipcMainC: Electron.IpcMain
@@ -75,6 +79,11 @@ app.whenReady().then(() => {
   // 创建自定义ipcMain控制对象
   const cipcMain = new ipcMainOperater(ipcMain)
 
+  // 初始化推理子程序
+  cipcMain.on('initialize-infer-process', (event, args) => {
+    inferer_mgr.initializeInferProcess(args.settings, event, args.processChannel)
+  })
+
   // 1.添加图像及其特征
   cipcMain.on('add-img-to-db', async (event, args) => {
     const options: Electron.OpenDialogOptions = {
@@ -85,7 +94,6 @@ app.whenReady().then(() => {
       ]
     }
     const out = await dialog.showOpenDialog(mainWindow, options)
-    console.log(out)
     inferer_mgr.startImgFeaExtract(out.filePaths, event, args.processChannel)
   })
 
@@ -104,6 +112,30 @@ app.whenReady().then(() => {
     inferer_mgr.startRemovefdb(args.path, event, args.processChannel)
   })
 
+  // 5.更换模型路径
+  cipcMain.on('change-model-path', async (event, args) => {
+    const options: Electron.OpenDialogOptions = {
+      properties: ['openFile'], // 选择多个文件
+      filters: [
+        { name: 'Model', extensions: args.ValidModel },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    }
+    const out = await dialog.showOpenDialog(mainWindow, options)
+    if (out.canceled || out.filePaths.length === 0) {
+      return
+    }
+    inferer_mgr.startChangeModelPath(
+      event,
+      {
+        modelPath: out.filePaths[0],
+        ModelType: args.ModelType,
+        eventName: 'change-model-path'
+      },
+      args.processChannel
+    )
+  })
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
@@ -115,6 +147,7 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  globalShortcut.unregisterAll()
   if (process.platform !== 'darwin') {
     app.quit()
   }

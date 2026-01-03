@@ -27,6 +27,26 @@ export enum WindowState {
 
 // ----------------------------定义send通道映射对象
 const Send_IpcChannels_Map = {
+  'initialize-infer-process': {
+    request: [] as unknown as {
+      settings: {
+        imgModelPath: string
+        txtModelPath: string
+      }
+      processChannel: string
+    },
+    toInfer: [] as unknown as {
+      settings: {
+        imgModelPath: string
+        txtModelPath: string
+      }
+      eventName: 'initialize-infer-process'
+    },
+    response: [] as unknown as {
+      eventName: 'initialize-infer-process'
+      msg: DefaultRet<boolean>
+    }
+  },
   'request-imgs-from-db': {
     request: [] as unknown as {
       range: [number, number]
@@ -84,6 +104,25 @@ const Send_IpcChannels_Map = {
       eventName: 'remove-from-db'
       msg: DefaultRet<boolean>
     }
+  },
+  'change-model-path': {
+    request: [] as unknown as {
+      ValidModel: string[]
+      ModelType: 'text' | 'image'
+      processChannel: string
+    },
+    toInfer: [] as unknown as {
+      modelPath: string
+      ModelType: 'text' | 'image'
+      eventName: 'change-model-path'
+    },
+    response: {} as {
+      eventName: 'change-model-path'
+      msg: DefaultRet<{
+        type: 'text' | 'image'
+        newModelPath: string
+      }>
+    }
   }
 } as const
 
@@ -98,7 +137,10 @@ export type Send_IpcChannels = {
 // ----------------------------定义send通道映射对象
 const Child_IpcChannels_Map = {
   'child-port-give': {
-    request: 'child-port-give',
+    request: {
+      eventName: 'child-port-give',
+      srcPath: [] as unknown as string
+    },
     response: null
   }
 } as const
@@ -121,6 +163,12 @@ const OneWay_IpcChannels_Map = {
   'new-img-removed': {
     response: [] as unknown as {
       eventName: 'new-img-removed'
+      msg: DefaultRet<string>
+    }
+  },
+  'error-channel': {
+    response: [] as unknown as {
+      eventName: 'error-channel'
       msg: DefaultRet<string>
     }
   }

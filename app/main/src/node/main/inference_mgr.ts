@@ -1,13 +1,20 @@
 import { Child_IpcChannels, OneWay_IpcChannels, Send_IpcChannels } from '@global/channeldef'
 import { MessageChannelMain, MessagePortMain, utilityProcess } from 'electron'
 import path from 'path'
+import { srcPath } from './index'
 
+// 提取成功类型
 type ExtractSuccessType<T> = T extends { msg: infer M }
   ? M extends { state: 'success' }
     ? T
     : never
   : never
-
+// 提取错误类型
+type ExtractErrorType<T> = T extends { msg: infer M }
+  ? M extends { state: 'error' }
+    ? T
+    : never
+  : never
 /**
  * 模型推理进程管理
  */
@@ -71,11 +78,22 @@ export class Inference_Manger {
   ): data is ExtractSuccessType<Send_IpcChannels[T]['response']> {
     return data.eventName == eventName && data.msg.state == 'success'
   }
+  protected _inferEventError<T extends keyof Send_IpcChannels>(
+    eventName: T,
+    data: Send_IpcChannels[T]['response']
+  ): data is ExtractErrorType<Send_IpcChannels[T]['response']> {
+    return data.eventName == eventName && data.msg.state == 'error'
+  }
+  protected _inferEventErrorOneWay<T extends keyof OneWay_IpcChannels>(
+    eventName: T,
+    data: OneWay_IpcChannels[T]['response']
+  ): data is ExtractErrorType<OneWay_IpcChannels[T]['response']> {
+    return data.eventName == eventName && data.msg.state == 'error'
+  }
   protected _inferEventOkOneWay<T extends keyof OneWay_IpcChannels>(
     eventName: T,
     data: OneWay_IpcChannels[T]['response']
   ): data is ExtractSuccessType<OneWay_IpcChannels[T]['response']> {
-    console.log(data, 'eN:', eventName)
     return data.eventName == eventName && data.msg.state == 'success'
   }
   // -----------------------internal end-------------------
@@ -93,6 +111,21 @@ export class Inference_Manger {
       numOfworks: 0,
       finished: 0
     }
+  }
+  public initializeInferProcess(
+    settings: Send_IpcChannels['initialize-infer-process']['request']['settings'],
+    event: Electron.IpcMainEvent,
+    processChannel: string
+  ) {
+    this.postMessageToInferer(this.mainProcess, {
+      settings,
+      eventName: 'initialize-infer-process'
+    })
+    this.ReplyRevent(event, processChannel, {
+      isFinal: true,
+      state: 'success',
+      content: true
+    })
   }
 
   public startPluginUtilityProcess() {
@@ -129,7 +162,9 @@ export class Inference_Manger {
         if (msg == 'INFER_ONE_UTILITY_PROCESS_READY') {
           console.log(`model inference process is started!`)
 
-          this.postMessageToChild(child, 'child-port-give', [port1])
+          this.postMessageToChild(child, { eventName: 'child-port-give', srcPath: srcPath }, [
+            port1
+          ])
         }
       })
 
@@ -183,12 +218,24 @@ export class Inference_Manger {
     }) => {
       const { data } = messageEvent
 
-      if (data.msg.state === 'error') {
-        console.error(data.msg.message)
+      if (this._inferEventError('add-img-to-db', data)) {
+        console.error(data.msg)
         this.taskinfo.finished += 1
+        if (this.taskinfo.finished === this.taskinfo.numOfworks) {
+          Revent.sender.send('error-channel', {
+            eventName: 'error-channel',
+            msg: {
+              state: 'error',
+              message: data.msg.message,
+              errorcode: data.msg.errorcode
+            }
+          })
+          this.resetTaskInfo()
+          console.log('rested task info')
+          this.mainProcess.removeListener('message', handleProgress)
+        }
         return
       }
-
       if (!this._inferEventOk('add-img-to-db', data)) return
 
       this.taskinfo.finished += 1
@@ -205,6 +252,7 @@ export class Inference_Manger {
           content: [0, 0]
         })
         this.resetTaskInfo()
+        console.log('rested task info')
         this.mainProcess.removeListener('message', handleProgress)
       }
     }
@@ -290,6 +338,35 @@ export class Inference_Manger {
               state: 'success',
               content: messageEvent.data.msg.content
             }
+          })
+        }
+      }
+    )
+  }
+  // 5.更换模型路径
+  startChangeModelPath(
+    event: Electron.IpcMainEvent,
+    args: Send_IpcChannels['change-model-path']['toInfer'],
+    processChannel: string
+  ) {
+    console.log('Changing model path to:', args)
+    // 发送消息到推理进程
+    this.postMessageToInferer(this.mainProcess, {
+      modelPath: args.modelPath,
+      ModelType: args.ModelType,
+      eventName: args.eventName
+    })
+    // 监听推理进程的回复
+    this.mainProcess.once(
+      'message',
+      (messageEvent: {
+        data: Send_IpcChannels['change-model-path']['response']
+        ports: MessagePortMain[]
+      }) => {
+        if (this._inferEventOk('change-model-path', messageEvent.data)) {
+          event.sender.send(processChannel, {
+            state: 'success',
+            content: messageEvent.data.msg.content
           })
         }
       }

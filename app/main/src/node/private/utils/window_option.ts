@@ -7,6 +7,8 @@ export const WinOption: BrowserWindowConstructorOptions = {
   width: 1400,
   height: 850,
   show: false,
+  minHeight: 630,
+  minWidth: 1000,
   autoHideMenuBar: true,
   title: '图像查找',
   ...(process.platform === 'linux' ? { icon } : {}),

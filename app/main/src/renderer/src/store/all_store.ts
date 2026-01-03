@@ -50,4 +50,20 @@ const Render_Ref_Store = defineStore('renderref', () => {
   }
 })
 
-export { Window_Store, Render_Ref_Store }
+const Model_Settings_Store = defineStore(
+  'modelsettings',
+  () => {
+    const imgModePath = ref<string>('')
+    const txtModelPath = ref<string>('')
+
+    return {
+      imgModePath,
+      txtModelPath
+    }
+  },
+  {
+    persist: true
+  }
+)
+
+export { Window_Store, Render_Ref_Store, Model_Settings_Store }
